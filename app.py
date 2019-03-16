@@ -4,6 +4,8 @@ import numpy as np
 import keras.models
 import re
 import base64
+from PIL import Image
+from io import BytesIO
 
 import sys 
 import os
@@ -23,13 +25,17 @@ def predict():
     class_mapping = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt'
     
     # get data from drawing canvas and save as image
-    parseImage(request.get_data())
+    decoded = parseImage(request.get_data())
 
     # read parsed image back in 8-bit, black and white mode (L)
-    x = imread('output.png', mode='L')
-    x = np.invert(x)
-    x = imresize(x,(28,28))
-
+        
+    x = Image.open(BytesIO(decoded))
+    
+    #x = Image.composite(x, Image.new('RGB', x.size, 'white'), x)
+    x = x.convert('L')  
+    x = x.resize((28, 28), Image.ANTIALIAS)  
+    x = 1 - np.array(x, dtype=np.float32) / 255.0
+    
     # reshape image data for use in neural network
     x = x.reshape(1,28,28,1)
     with graph.as_default():
@@ -46,8 +52,13 @@ def predict():
 def parseImage(imgData):
     # parse canvas bytes and save as output.png
     imgstr = re.search(b'base64,(.*)', imgData).group(1)
-    with open('output.png','wb') as output:
-        output.write(base64.decodebytes(imgstr))
+    #with open('output.png','wb') as output:
+    #    output.write(base64.decodebytes(imgstr))
+    #imgdata = imgstr.split(',')[1]
+    #imgData = imgData.split("base64,")[1]
+    decoded = base64.decodebytes(imgstr)
+    return decoded
+
 
 if __name__ == '__main__':
     app.debug = False
