@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request
-from scipy.misc import imsave, imread, imresize
 import numpy as np
-import keras.models
 import re
 import base64
 from PIL import Image
@@ -13,8 +11,9 @@ sys.path.append(os.path.abspath("./model-new"))
 from load import *
 
 app = Flask(__name__)
-global model, graph
-model, graph = init()
+global model, graph, sess
+model, graph, sess = init()
+print(model, graph)
     
 @app.route('/')
 def index():
@@ -28,7 +27,6 @@ def predict():
     decoded = parseImage(request.get_data())
 
     # read parsed image back in 8-bit, black and white mode (L)
-        
     x = Image.open(BytesIO(decoded))
     
     #x = Image.composite(x, Image.new('RGB', x.size, 'white'), x)
@@ -38,7 +36,13 @@ def predict():
     
     # reshape image data for use in neural network
     x = x.reshape(1,28,28,1)
+
+    #sess = tf.Session()
+    #graph = tf.get_default_graph()
+    print(graph)
+
     with graph.as_default():
+        set_session(sess)
         out = model.predict(x)
         print(out)
         print(np.argmax(out, axis=1))
